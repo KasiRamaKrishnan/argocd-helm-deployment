@@ -1,0 +1,49 @@
+name: Deploy ArgoCD POC Setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS Credentials
+        run: |
+          az aks get-credentials --resource-group ${{ secrets.RESOURCE_GROUP }} \
+          --name ${{ secrets.CLUSTER_NAME }} --overwrite-existing
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Add Helm Repositories
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+
+      - name: Install NGINX Ingress Controller
+        run: |
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx --create-namespace \
+            --set controller.service.type=LoadBalancer
+
+      - name: Deploy ArgoCD from Local Helm Chart
+        run: |
+          helm upgrade --install argocd ./helm/argocd \
+            --namespace argocd --create-namespace \
+            -f helm/argocd/poc-values.yaml
+
+      - name: Deploy ArgoCD Ingress
+        run: |
+          kubectl apply -f manifests/argocd-poc-ingress.yaml

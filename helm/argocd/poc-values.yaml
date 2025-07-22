@@ -1,0 +1,30 @@
+server:
+  service:
+    type: LoadBalancer
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - argocd-master.kasi.com
+    tls: []  # No TLS setup
+  config:
+    url: http://argocd-master.kasi.com  # No HTTPS, just HTTP
+
+dex:
+  enabled: false  # No SSO
+
+applicationSet:
+  enabled: true
+
+notifications:
+  enabled: false  # Skip notifications for POC
+
+controller:
+  replicas: 1
+
+repoServer:
+  autoscaling:
+    enabled: false
+
+redis:
+  enabled: true
